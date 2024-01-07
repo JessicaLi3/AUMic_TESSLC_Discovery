@@ -1,0 +1,91 @@
+%matplotlib inline
+from astropy.io import fits
+import matplotlib.pyplot as plt
+import numpy as np
+
+fits_file = "tess2018206045859-s0001-0000000441420236-0120-s_lc.fits"
+fits.info(fits_file)
+fits.getdata(fits_file, ext=1).columns
+with fits.open(fits_file, mode="readonly") as hdulist:
+    tess_bjds = hdulist[1].data['TIME']
+    sap_fluxes = hdulist[1].data['SAP_FLUX']
+    pdcsap_fluxes = hdulist[1].data['PDCSAP_FLUX']
+    quality=hdulist[1].data['QUALITY']
+
+# Define the epoch of primary transit in TBJD.  Our timestamps are also already in TBJD.
+#lc=np.empty((20076,2))
+#lc[:,0]=tess_bjds
+#lc[:,1]=pdcsap_fluxes
+#np.savetxt('lc.txt',lc)
+
+# Start figure and axis.
+fig, ax = plt.subplots()
+fluxes = np.nan_to_num(pdcsap_fluxes)
+nfluxes = fluxes/np.median(fluxes)
+
+# Plot the timeseries in black circles.
+ax.plot(tess_bjds, nfluxes, 'ko') #  sap_fluxes,'ko')
+
+# Center the x-axis on where we expect a transit to be (time = T0), and set
+# the x-axis range within +/- 1 day of T0.
+t0 = 1330.4
+print(tess_bjds[3580],tess_bjds[3750])
+ax.set_xlim(t0 - 0.25, t0 + 0.25)
+#ax.set_ylim(263000,266000)
+ax.set_ylim(0.990,1.002)
+
+# Overplot a red vertical line that should be where the transit occurs.
+#ax.axvline(x=t0, color="red")
+
+# Let's label the axes and define a title for the figure.
+fig.suptitle("AU Mic b Light Curve - Sector 1")
+ax.set_ylabel("median normalized PDCSAP Flux (e-/s)")
+ax.set_xlabel("Time (TBJD)")
+
+# Adjust the left margin so the y-axis label shows up.
+plt.subplots_adjust(left=0.15)
+plt.show()
+
+with fits.open(fits_file, mode="readonly") as hdulist:
+    qual_flags = hdulist[1].data['QUALITY']
+
+# Start figure and axis.
+fig, ax = plt.subplots()
+
+# Plot the timeseries in black circles.
+ax.plot(tess_bjds, pdcsap_fluxes, 'ko')
+
+# Locate quality flags greater than zero.
+where_gt0 = np.where(qual_flags > 0)[0]
+
+# Overplot the fluxes with quality flags greater than zero in red.
+ax.plot(tess_bjds[where_gt0], pdcsap_fluxes[where_gt0], 'ro')
+
+np.savetxt('flags.txt',qual_flags)
+
+# Let's label the axes and define a title for the figure.
+fig.suptitle("AU Mic Light Curve - Sector 1")
+ax.set_ylabel("PDCSAP Flux (e-/s)")
+ax.set_xlabel("Time (TBJD)")
+ax.set_xlim(t0 - 0.25, t0 + 0.25)
+#ax.set_ylim(0.990,1.002)
+plt.show()
+
+with fits.open(fits_file, mode="readonly") as hdulist:
+    aperture = hdulist[2].data
+
+# Start figure and axis.
+fig, ax = plt.subplots()
+
+# Display the pixels as an image.
+cax = ax.imshow(aperture, cmap=plt.cm.YlGnBu_r, origin="lower")
+
+# Add a color bar.
+cbar = fig.colorbar(cax)
+
+# Add a title to the plot.
+fig.suptitle("AU Mic b Aperture - Sector 1")
+plt.show()
+
+bitmask = np.binary_repr(267)
+print(bitmask)
